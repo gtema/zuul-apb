@@ -1,0 +1,46 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+- name: Git clone config project locally.
+  git:
+    dest: "{{ project_config_checkout_dest }}"
+    refspec: "{{ project_config_refspec|default(omit) }}"
+    repo: "{{ project_config_repo }}"
+
+# Note: content of files will go through template module, so no need to do it here
+- name: read zuul/zuul.conf
+  set_fact:
+    zuul_zuul_conf: "{{ lookup('file', project_config_checkout_dest + '/zuul/zuul.conf', errors='ignore') }}"
+
+- name: read zuul/main.yaml
+  set_fact:
+    zuul_main_yaml: "{{ lookup('file', project_config_checkout_dest + '/zuul/main.yaml', errors='ignore') }}"
+
+- name: read zuul/logging.conf
+  set_fact:
+    zuul_logging_conf: "{{ lookup('file', project_config_checkout_dest + '/zuul/logging.conf', errors='ignore') }}"
+
+- name: read zuul/variables.yaml
+  set_fact:
+    zuul_variables_yaml: "{{ lookup('file', project_config_checkout_dest + '/zuul/variables.yaml', errors='ignore') }}"
+
+- name: read nodepool/nodepool.yaml
+  set_fact:
+    nodepool_nodepool_yaml: "{{ lookup('file', project_config_checkout_dest + '/nodepool/nodepool.yaml', errors='ignore') }}"
+
+- name: read nodepool/secure.conf
+  set_fact:
+    nodepool_secure_conf: "{{ lookup('file', project_config_checkout_dest + '/nodepool/secure.conf', errors='ignore') }}"
+
+- name: read nodepool/logging.conf
+  set_fact:
+    nodepool_logging_conf: "{{ lookup('file', project_config_checkout_dest + '/nodepool/logging.conf', errors='ignore') }}"

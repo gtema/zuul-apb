@@ -1,0 +1,169 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+##############################################################################
+## Provision zuul
+## This role executes much of the needed functionality to provision an
+## application using an Ansible Playbook Bundle.
+##############################################################################
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "0%: Starting"
+  when: in_cluster
+
+- name: 'Set facts'
+  set_fact:
+    cluster: '{{ "openshift" if "openshift" in lookup("k8s", cluster_info="version") else "kubernetes" }}'
+
+# This is required for the development phase to bootstrap development parameters
+# into the APB. This file is explicitely added in .gitignore
+- include_vars: "{{ item }}"
+  with_first_found:
+    - files:
+        - development.yml
+      skip: true
+
+- name: 'Include variables based on ansible version'
+  include_vars: ansible_26.yml
+  when: ansible_version.full is version('2.6', '>=')
+
+- name: 'Include resources variables'
+  include_vars: resources_prod.yml
+  when: _apb_plan_id == 'prod'
+
+- name: 'Process project-config repo'
+  include_tasks: project-config.yml
+
+- name: "Set general configs and secrets state={{ state }}"
+  k8s:
+    state: '{{ state }}'
+    definition: "{{ item }}"
+  with_items:
+    - "{{ lookup('template', 'common_config.yaml') | from_yaml }}"
+    - "{{ lookup('template', 'zuul_config.yaml') | from_yaml }}"
+    - "{{ lookup('template', 'nodepool_config.yaml') | from_yaml }}"
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "10%: Cluster objects state={{ state }}"
+  when: in_cluster
+
+- name: "set s2i state = {{ state }}"
+  k8s:
+    state: '{{ state }}'
+    definition: "{{ item }}"
+  when: use_s2i and cluster == 'openshift'
+  with_items:
+    - "{{ lookup('template', 'zookeeper_s2i.yaml') | from_yaml }}"
+    - "{{ lookup('template', 'zuul_scheduler_s2i.yaml') | from_yaml }}"
+    - "{{ lookup('template', 'zuul_executor_s2i.yaml') | from_yaml }}"
+    - "{{ lookup('template', 'zuul_merger_s2i.yaml') | from_yaml }}"
+    - "{{ lookup('template', 'zuul_web_s2i.yaml') | from_yaml }}"
+    - "{{ lookup('template', 'nodepool_launcher_s2i.yaml') | from_yaml }}"
+    - "{{ lookup('template', 'nodepool_builder_s2i.yaml') | from_yaml }}"
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "20%: Cluster objects state={{ state }}"
+  when: in_cluster
+
+- name: "set zookeeper state={{ state }}"
+  k8s:
+    state: '{{ state }}'
+    definition: "{{ item }}"
+  with_items:
+    - "{{ lookup('template', 'zookeeper.yaml') | from_yaml }}"
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "30%: Cluster objects state={{ state }}"
+  when: in_cluster
+
+##### Zuul part
+- name: "set zuul scheduler state={{ state }}"
+  k8s:
+    state: '{{ state }}'
+    definition: "{{ item }}"
+  with_items:
+    - "{{ lookup('template', 'zuul_scheduler.yaml') | from_yaml }}"
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "40%: Cluster objects state={{ state }}"
+  when: in_cluster
+
+- name: "set zuul executor state={{ state }}"
+  k8s:
+    state: '{{ state }}'
+    definition: "{{ item }}"
+  with_items:
+    - "{{ lookup('template', 'zuul_executor.yaml') | from_yaml }}"
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "50%: Cluster objects state={{ state }}"
+  when: in_cluster
+
+- name: "set zuul merger state={{ state }}"
+  k8s:
+    state: '{{ state }}'
+    definition: "{{ item }}"
+  with_items:
+    - "{{ lookup('template', 'zuul_merger.yaml') | from_yaml }}"
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "60%: Cluster objects state={{ state }}"
+  when: in_cluster
+
+- name: "set zuul web state={{ state }}"
+  k8s:
+    state: '{{ state }}'
+    definition: "{{ item }}"
+  with_items:
+    - "{{ lookup('template', 'zuul_web.yaml') | from_yaml }}"
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "70%: Cluster objects state={{ state }}"
+  when: in_cluster
+
+##### Nodepool part
+- name: "set nodepool launcher state={{ state }}"
+  k8s:
+    state: '{{ state }}'
+    definition: "{{ item }}"
+  with_items:
+    - "{{ lookup('template', 'nodepool_launcher.yaml') | from_yaml }}"
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "80%: Cluster objects state={{ state }}"
+  when: in_cluster
+
+- name: "set nodepool builder state={{ state }}"
+  k8s:
+    state: '{{ state }}'
+    definition: "{{ item }}"
+  with_items:
+    - "{{ lookup('template', 'nodepool_builder.yaml') | from_yaml }}"
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "90%: Cluster objects state={{ state }}"
+  when: in_cluster
+
+- name: "Update last operation"
+  asb_last_operation:
+    description: "100%: Done"
+  when: in_cluster

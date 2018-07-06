@@ -1,0 +1,99 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+- apiVersion: v1
+  kind: StatefulSet
+  metadata:
+    name: "nodepool-builder"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "nodepool-builder"
+      service: "nodepool"
+  spec:
+    revisionHistoryLimit: 2
+    selector:
+      matchLabels:
+        app: "nodepool-builder"
+        service: "nodepool"
+    replicas: {{ nodepool_builder_replicas }}
+    updateStrategy:
+      type: "RollingUpdate"
+    podManagementPolicy: "Parallel"
+    template:
+      metadata:
+        labels:
+          app: "nodepool-builder"
+          service: "nodepool"
+      spec:
+        serviceAccountName: "nodepool-builder"
+        containers:
+          - name: "nodepool-builder"
+            image: "{{ nodepool_builder_image_name }}"
+            imagePullPolicy: "Always"
+            resources: {{ nodepool_builder_resources }}
+            securityContext:
+              # The nodepool builder utilizes bwrap for sandboxing ansible runs.
+              # This needs elevated privileges.
+              privileged: true
+
+              # Also run as nodepool user (1001) so we don't run as root due to the
+              # privileged flag.
+              runAsUser: 1001
+
+            volumeMounts:
+              - name: "nodepool-conf"
+                mountPath: /etc/nodepool/
+                readOnly: true
+              - name: "nodepool-builder-storage"
+                mountPath: /opt/nodepool
+              - name: "os-client-config"
+                mountPath: /etc/openstack
+                readOnly: true
+        volumes:
+          - name: "nodepool-conf"
+            projected:
+              sources:
+                - configMap:
+                    name: "nodepool-config"
+                    items:
+                      - key: nodepool.yaml
+                        path: nodepool.yaml
+                      - key: secure.conf
+                        path: secure.conf
+                      - key: logging.conf
+                        path: logging.conf
+                - secret:
+                    name: zuul-secrets
+                    items:
+                      - key: worker-ssh.pem
+                        path: keys/ssh.key
+          - name: "os-client-config"
+            projected:
+              sources:
+                - secret:
+                    name: "zuul-os-client-config-secure"
+                    items:
+                      - key: secure.yaml
+                        path: secure.yaml
+                - configMap:
+                    name: "zuul-os-client-config"
+                    items:
+                      - key: clouds.yaml
+                        path: clouds.yaml
+    volumeClaimTemplates:
+      - metadata:
+          name: "nodepool-builder-storage"
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: "{{ nodepool_builder_local_storage }}"

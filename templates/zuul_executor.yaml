@@ -1,0 +1,123 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: "zuul-executor"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "zuul-executor"
+      service: "zuul"
+  spec:
+    type: "ClusterIP"
+    ports:
+      - name: "finger"
+        port: 7900
+        targetPort: 7900
+        protocol: "TCP"
+    selector:
+      app: "zuul-executor"
+      service: "zuul"
+    sessionAffinity: None
+
+- apiVersion: v1
+  kind: StatefulSet
+  metadata:
+    name: "zuul-executor"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "zuul-executor"
+      service: "zuul"
+  spec:
+    revisionHistoryLimit: 2
+    selector:
+      matchLabels:
+        app: "zuul-executor"
+        service: "zuul"
+    replicas: {{ zuul_executor_replicas }}
+    updateStrategy:
+      type: "RollingUpdate"
+    podManagementPolicy: "Parallel"
+    template:
+      metadata:
+        labels:
+          app: "zuul-executor"
+          service: "zuul"
+      spec:
+        serviceAccountName: "zuul-executor"
+        containers:
+          - name: "zuul-executor"
+            image: "{{ zuul_executor_image_name }}"
+            imagePullPolicy: "Always"
+            resources: {{ zuul_executor_resources | to_json }}
+            securityContext:
+              # The zuul executor utilizes bwrap for sandboxing ansible runs.
+              # This needs elevated privileges.
+              privileged: true
+
+              # Also run as zuul user (1001) so we don't run as root due to the
+              # privileged flag.
+              runAsUser: 1001
+            ports:
+              - containerPort: 7900
+                protocol: "TCP"
+                name: "finger"
+
+            volumeMounts:
+              - name: "zuul-conf"
+                mountPath: /etc/zuul/
+                readOnly: true
+              - name: "zuul-executor-git"
+                mountPath: /var/lib/zuul/executor-git
+                readOnly: false
+              # certificates for gearman
+              - name: "gearman-client-certificate"
+                mountPath: /etc/ssl/gearman-client
+                readOnly: true
+        volumes:
+          - name: "zuul-conf"
+            projected:
+              sources:
+                - configMap:
+                    name: "zuul-config"
+                    items:
+                      - key: zuul.conf
+                        path: zuul.conf
+                      - key: main.yaml
+                        path: main.yaml
+                      - key: logging.conf
+                        path: logging.conf
+                      - key: variables.yaml
+                        path: variables/variables.yaml
+                - secret:
+                    name: "zuul-secrets"
+                    items:
+                      - key: github.pem
+                        path: ssl/github.pem
+                - secret:
+                    name: "zuul-secrets"
+                    items:
+                      - key: worker-ssh.pem
+                        path: ssl/ssh.pem
+          - name: "gearman-client-certificate"
+            secret:
+              secretName: "zuul-gearman-client-certificate"
+    volumeClaimTemplates:
+      - metadata:
+          name: "zuul-executor-git"
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: "{{ zuul_executor_local_storage }}"

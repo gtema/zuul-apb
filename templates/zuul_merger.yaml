@@ -1,0 +1,88 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+- apiVersion: v1
+  kind: StatefulSet
+  metadata:
+    name: "zuul-merger"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "zuul-merger"
+      service: "zuul"
+  spec:
+    revisionHistoryLimit: 2
+    selector:
+      matchLabels:
+        app: "zuul-merger"
+        service: "zuul"
+    replicas: {{ zuul_merger_replicas }}
+    updateStrategy:
+      type: "RollingUpdate"
+    podManagementPolicy: "Parallel"
+    template:
+      metadata:
+        labels:
+          app: "zuul-merger"
+          service: "zuul"
+      spec:
+        containers:
+          - name: "zuul-merger"
+            image: "{{ zuul_merger_image_name }}"
+            imagePullPolicy: "Always"
+            resources: {{ zuul_merger_resources | to_json }}
+            volumeMounts:
+              - name: "zuul-conf"
+                mountPath: /etc/zuul/
+                readOnly: true
+              - name: "zuul-merger-git"
+                mountPath: /var/lib/zuul/merger-git
+                readOnly: false
+              # certificates for gearman
+              - name: "gearman-client-certificate"
+                mountPath: /etc/ssl/gearman-client
+                readOnly: true
+        volumes:
+          - name: "zuul-conf"
+            projected:
+              sources:
+                - configMap:
+                    name: "zuul-config"
+                    items:
+                      - key: zuul.conf
+                        path: zuul.conf
+                      - key: main.yaml
+                        path: main.yaml
+                      - key: logging.conf
+                        path: logging.conf
+                      - key: variables.yaml
+                        path: variables/variables.yaml
+                - secret:
+                    name: "zuul-secrets"
+                    items:
+                      - key: github.pem
+                        path: ssl/github.pem
+                - secret:
+                    name: "zuul-secrets"
+                    items:
+                      - key: worker-ssh.pem
+                        path: ssl/ssh.pem
+          - name: "gearman-client-certificate"
+            secret:
+              secretName: "zuul-gearman-client-certificate"
+    volumeClaimTemplates:
+      - metadata:
+          name: "zuul-merger-git"
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: "{{ zuul_merger_local_storage }}"

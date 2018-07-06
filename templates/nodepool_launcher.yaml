@@ -1,0 +1,94 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+
+- apiVersion: "{{ deployment_api_version }}"
+  kind: "{{ deployment_kind }}"
+  metadata:
+    name: "nodepool-launcher"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "nodepool-launcher"
+      service: "zuul"
+  spec:
+    strategy:
+      type: "Recreate"
+    replicas: 1
+    revisionHistoryLimit: 2
+    triggers:
+      - type: "ConfigChange"
+      - type: "ImageChange"
+        imageChangeParams:
+          automatic: true
+          from:
+            kind: "ImageStreamTag"
+            name: "{{ nodepool_launcher_image_name }}"
+          containerNames:
+            - "nodepool-launcher"
+    template:
+      metadata:
+        labels:
+          app: "nodepool-launcher"
+          service: "zuul"
+      spec:
+        containers:
+          - name: "nodepool-launcher"
+            image: "{{ nodepool_launcher_image_name }}"
+            ports:
+              - containerPort: 8005
+                protocol: "TCP"
+            # env:
+            #   - name: STATSD_HOST
+            #     value: "${STATSD_HOST}"
+            volumeMounts:
+              - name: "nodepool-conf"
+                mountPath: "/etc/nodepool/"
+                readOnly: true
+              - name: "os-client-config"
+                mountPath: "/etc/openstack/"
+                readOnly: true
+            resources: {{ nodepool_launcher_resources | to_json }}
+            livenessProbe:
+              httpGet:
+                path: "/image-list"
+                port: 8005
+                timeoutSeconds: 15
+            readinessProbe:
+              httpGet:
+                path: "/image-list"
+                port: 8005
+        volumes:
+          - name: "nodepool-conf"
+            projected:
+              sources:
+                - configMap:
+                    name: "nodepool-config"
+                    items:
+                      - key: nodepool.yaml
+                        path: nodepool.yaml
+                      - key: secure.conf
+                        path: secure.conf
+                      - key: logging.conf
+                        path: logging.conf
+          - name: "os-client-config"
+            projected:
+              sources:
+                - secret:
+                    name: "zuul-os-client-config-secure"
+                    items:
+                      - key: secure.yaml
+                        path: secure.yaml
+                - configMap:
+                    name: "zuul-os-client-config"
+                    items:
+                      - key: clouds.yaml
+                        path: clouds.yaml

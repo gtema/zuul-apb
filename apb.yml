@@ -1,0 +1,244 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+version: 1.0
+name: zuul-apb
+description: Zuul-CI
+bindable: False
+async: optional
+tags:
+  - CI/CD
+metadata:
+  documentationUrl: https://zuul-ci.org
+  displayName: Zuul (APB)
+  longDescription: This deploys Zuul-ci
+  dependencies: []
+  providerDisplayName: OpenTelekomCloud
+plans:
+  - name: prod
+    description: This default plan deploys zuul-apb
+    free: True
+    metadata:
+      displayName: Production
+    parameters:
+      - name: use_s2i
+        title: Use S2I to build images part of the project
+        type: boolean
+        default: true
+      - name: project_config_repo
+        title: git repository with project-configuration
+        type: string
+        default: 'https://github.com/gtema/zuul-project-config'
+      - name: s2i_repo
+        title: git repository to be used for S2I
+        type: string
+        default: 'https://github.com/gtema/s2i-zuul'
+      - name: os_client_config_clouds
+        title: os_client_config
+        type: string
+        display_type: textarea
+        default: |+
+          cache:
+            expiration_time: 3600
+          clouds:
+            my_cloud:
+              auth:
+                auth_url: MY_URL_HERE
+                user_domain_name: MY_DOMAIN
+              interface: public
+              identity_api_version: 3
+      - name: oc_client_config_secure
+        title: os_client_config_secure
+        type: string
+        display_type: textarea
+        display_group: secrets
+        default: |+
+          clouds:
+            my_cloud:
+              auth:
+                username: MY_USER
+                password: MY_SECRET
+      - name: github_secret
+        title: secret to be used by git webhooks (s2i)
+        type: string
+        display_group: secrets
+        default: mysecret
+      - name: webhook_github_token
+        title: webhook token, which is used by github Zuul App
+        type: string
+        display_group: secrets
+        default: ''
+      - name: webhook_github_app_id
+        title: GitHub Zuul application ID
+        display_group: secrets
+        type: int
+        default: 0
+      - name: gearman_root_ca
+        title: Gearman root ca
+        type: string
+        display_type: textarea
+        display_group: secrets
+        default: |+
+          -----BEGIN CERTIFICATE-----
+          CONTENT
+          -----END CERTIFICATE-----
+      - name: gearman_server_pem
+        title: Gearman Server PEM
+        type: string
+        display_type: textarea
+        display_group: secrets
+        default: |+
+          -----BEGIN CERTIFICATE-----
+          CONTENT
+          -----END CERTIFICATE-----
+      - name: gearman_server_key
+        title: Gearman Server KEY
+        type: string
+        display_type: textarea
+        display_group: secrets
+        default: |+
+          -----BEGIN PRIVATE KEY-----
+          CONTENT
+          -----END PRIVATE KEY-----
+      - name: gearman_client_pem
+        title: Gearman client PEM
+        type: string
+        display_type: textarea
+        display_group: secrets
+        default: |+
+          -----BEGIN CERTIFICATE-----
+          CONTENT
+          -----END CERTIFICATE-----
+      - name: gearman_client_key
+        title: Gearman client KEY
+        type: string
+        display_type: textarea
+        display_group: secrets
+        default: |+
+          -----BEGIN PRIVATE KEY-----
+          CONTENT
+          -----END PRIVATE KEY-----
+      - name: zuul_github_pem
+        title: Github Zuul app certificate
+        type: string
+        display_type: textarea
+        display_group: secrets
+        default: |+
+          -----BEGIN RSA PRIVATE KEY-----
+          CONTENT
+          -----END RSA PRIVATE KEY-----
+      - name: worker_ssh_pem
+        title: SSH Key to login to worker nodes
+        type: string
+        display_type: textarea
+        display_group: secrets
+        default: |+
+          -----BEGIN RSA PRIVATE KEY-----
+          CONTENT
+          -----END RSA PRIVATE KEY-----
+      - name: zookeeper_replicas
+        title: Count of zookeeper instances (should be uneven)
+        enum: [1, 3, 5]
+        type: enum
+        default: 1
+        display_group: Zookeeper Configuration
+      - name: zookeeper_local_storage
+        title: Size of the PV for zookeeper instances (eg. 1Gi)
+        type: string
+        default: "5Gi"
+        display_group: Zookeeper Configuration
+      - name: zookeeper_image_name
+        title: Name of the zookeeper image (if s2i is not used).
+        type: string
+        default: "s2i-zookeeper:latest"
+        display_group: Zookeeper Configuration
+      - name: zuul_scheduler_image_name
+        title: Name of the zuul scheduler image (if s2i is not used).
+        type: string
+        default: "s2i-app-zuul-scheduler:latest"
+        display_group: Zuul Configuration
+      - name: zuul_executor_replicas
+        title: Count of zookeeper instances (should be uneven)
+        type: int
+        default: 1
+        display_group: Zuul Configuration
+      - name: zuul_executor_local_storage
+        title: Size of the PV for zuul executor instances (eg. 1Gi)
+        type: string
+        default: "10Gi"
+        display_group: Zuul Configuration
+      - name: zuul_executor_image_name
+        title: Name of the zookeeper image (if s2i is not used).
+        type: string
+        default: "s2i-app-zuul-executor:latest"
+        display_group: Zuul Configuration
+      - name: zuul_merger_replicas
+        title: Count of zookeeper instances (should be uneven)
+        type: int
+        default: 1
+        display_group: Zuul Configuration
+      - name: zuul_merger_local_storage
+        title: Size of the PV for zuul merger instances (eg. 1Gi)
+        type: string
+        default: "10Gi"
+        display_group: Zuul Configuration
+      - name: zuul_merger_image_name
+        title: Name of the zookeeper image (if s2i is not used).
+        type: string
+        default: "s2i-app-zuul-merger:latest"
+        display_group: Zuul Configuration
+      - name: zuul_web_replicas
+        title: Count of zookeeper instances (should be uneven)
+        type: int
+        default: 1
+        display_group: Zuul Configuration
+      - name: zuul_web_image_name
+        title: Name of the zookeeper image (if s2i is not used).
+        type: string
+        default: "s2i-app-zuul-web:latest"
+        display_group: Zuul Configuration
+      - name: nodepool_launcher_replicas
+        title: Count of zookeeper instances (should be uneven)
+        type: int
+        default: 1
+        display_group: Nodepool Configuration
+      - name: nodepool_launcher_image_name
+        title: Name of the zookeeper image (if s2i is not used).
+        type: string
+        default: "s2i-app-nodepool-launcher:latest"
+        display_group: Nodepool Configuration
+      - name: nodepool_builder_replicas
+        title: Count of zookeeper instances (should be uneven)
+        type: int
+        default: 1
+        display_group: Nodepool Configuration
+      - name: nodepool_builder_local_storage
+        title: Size of the PV for nodepool builder instances (eg. 1Gi)
+        type: string
+        default: "100Gi"
+        display_group: Nodepool Configuration
+      - name: nodepool_builder_image_name
+        title: Name of the zookeeper image (if s2i is not used).
+        type: string
+        default: "s2i-app-nodepool-builder:latest"
+        display_group: Nodepool Configuration
+    updates_to:
+      - dev
+  - name: dev
+    description: This development plan deploys zuul-apb (use defaults)
+    free: True
+    metadata:
+      displayName: Development
+    parameters:
+      []
+    # updates_to:
+    #   - prod

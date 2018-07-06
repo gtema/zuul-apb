@@ -1,0 +1,499 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+
+# Defaults for values we could expect from a broker
+_apb_plan_id: default
+_apb_service_class_id: 0
+_apb_service_instance_id: 0
+
+app_name: "zuul-{{ _apb_service_instance_id }}"
+namespace: "{{ lookup('env','NAMESPACE') | default('zuul', true) }}"
+
+# git repo with the zuul project-config
+project_config_repo: "https://github.com/gtema/zuul-project-config"
+
+# local destination to checkout project-config
+project_config_checkout_dest: "/tmp/project-config"
+
+##### s2i
+# Prepare s2i BuildConfigs for each component
+use_s2i: true
+
+# Build also BuilderImages ourselves. If false you need to import builder images yourself. See README
+manage_s2i_builder_images: true
+
+# git repo with the s2is
+s2i_repo: "https://github.com/gtema/s2i-zuul"
+# basic image to be used to build builder images
+s2i_build_builder_image: "registry.fedoraproject.org/f28/s2i-base"
+
+# Zookeeper s2i
+s2i_builder_zookeeper_repo: "{{ s2i_repo }}"
+s2i_builder_zookeeper_context_dir: "s2i-zookeeper"
+s2i_builder_zookeeper_stream_name: "s2i-builder-zookeeper"
+s2i_app_zookeeper_repo: "{{ s2i_repo }}"
+s2i_app_zookeeper_context_dir: 's2i-zookeeper'
+
+# Zuul scheduler s2i
+s2i_builder_zuul_scheduler_repo: "{{ s2i_repo }}"
+s2i_builder_zuul_scheduler_context_dir: "s2i-zuul-scheduler"
+s2i_builder_zuul_scheduler_stream_name: "s2i-builder-zuul-scheduler"
+s2i_app_zuul_scheduler_repo: "{{ project_config_repo }}"
+s2i_app_zuul_scheduler_context_dir: 'zuul'
+
+# Zuul executor s2i
+s2i_builder_zuul_executor_repo: "{{ s2i_repo }}"
+s2i_builder_zuul_executor_context_dir: "s2i-zuul-executor"
+s2i_builder_zuul_executor_stream_name: "s2i-builder-zuul-executor"
+s2i_app_zuul_executor_repo: "{{ project_config_repo }}"
+s2i_app_zuul_executor_context_dir: 'zuul'
+
+# Zuul merger s2i
+s2i_builder_zuul_merger_repo: "{{ s2i_repo }}"
+s2i_builder_zuul_merger_context_dir: "s2i-zuul-merger"
+s2i_builder_zuul_merger_stream_name: "s2i-builder-zuul-merger"
+s2i_app_zuul_merger_repo: "{{ project_config_repo }}"
+s2i_app_zuul_merger_context_dir: 'zuul'
+
+# Zuul web s2i
+s2i_builder_zuul_web_repo: "{{ s2i_repo }}"
+s2i_builder_zuul_web_context_dir: "s2i-zuul-web"
+s2i_builder_zuul_web_stream_name: "s2i-builder-zuul-web"
+s2i_app_zuul_web_repo: "{{ project_config_repo }}"
+s2i_app_zuul_web_context_dir: 'zuul'
+
+# Nodepool launcher s2i
+s2i_builder_nodepool_launcher_repo: "{{ s2i_repo }}"
+s2i_builder_nodepool_launcher_context_dir: "s2i-nodepool-launcher"
+s2i_builder_nodepool_launcher_stream_name: "s2i-builder-nodepool-launcher"
+s2i_app_nodepool_launcher_repo: "{{ project_config_repo }}"
+s2i_app_nodepool_launcher_context_dir: 'nodepool'
+
+# Nodepool builder s2i
+s2i_builder_nodepool_builder_repo: "{{ s2i_repo }}"
+s2i_builder_nodepool_builder_context_dir: "s2i-nodepool-builder"
+s2i_builder_nodepool_builder_stream_name: "s2i-builder-nodepool-builder"
+s2i_app_nodepool_builder_repo: "{{ project_config_repo }}"
+s2i_app_nodepool_builder_context_dir: 'nodepool'
+
+##### End s2i
+
+
+#### Keys
+gearman_root_ca: |+
+  -----BEGIN CERTIFICATE-----
+  MIIDmjCCAoKgAwIBAgIJAN8sAUG3GR9wMA0GCSqGSIb3DQEBCwUAMGIxCzAJBgNV
+  BAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEPMA0GA1UEBwwGQXVzdGluMR0wGwYDVQQK
+  DBRPcGVuU3RhY2sgRm91bmRhdGlvbjETMBEGA1UEAwwKZ2Vhcm1hbi1jYTAeFw0x
+  ODAzMjgwMjMzMTZaFw0yODAzMjUwMjMzMTZaMGIxCzAJBgNVBAYTAlVTMQ4wDAYD
+  VQQIDAVUZXhhczEPMA0GA1UEBwwGQXVzdGluMR0wGwYDVQQKDBRPcGVuU3RhY2sg
+  Rm91bmRhdGlvbjETMBEGA1UEAwwKZ2Vhcm1hbi1jYTCCASIwDQYJKoZIhvcNAQEB
+  BQADggEPADCCAQoCggEBAMLqIrwY9mDh9kKc/mXDvEUifXgdHtz4GwP3hoYz6N82
+  8Zl7NzUqvYFSj9tlpdJxFHWFBjB9TiGv+2UPjDfGLk7xTKPkErnEcmH6zf4F+0YH
+  hEI00c7DN5sSPq0qcMk1pVCzZ96Fhdi+fIQkVq3Ovx0GGmknHy0K2If2vX9FgZNZ
+  323BZw7vZUSYRIvN8ClAXg+ONvHvodVGBWts2SO5CYvnsA+kQRa6RJswoe9CkTxb
+  qF8yq5CPLEdQeoTiF4RiLIsfB50ZFTcOrARw93blcMkSw4kh3EJhrRMezoJZZKPE
+  JfOOaMmHiKbrF5TWjREJODgdHIz87nePDuZAWrvlyDECAwEAAaNTMFEwHQYDVR0O
+  BBYEFEqtl/rooCIF+gMIfS2IKzYJC4LRMB8GA1UdIwQYMBaAFEqtl/rooCIF+gMI
+  fS2IKzYJC4LRMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAEck
+  6wCHSOwtzWBBwM18uVlHAUywe95SNvgPJ6tt3jaM9Th6aGEaeF7Eh1wPBoQBUBUC
+  YsXhXenROoEf6r0CHaJkamaJSZqEIJ5/2sdZ8RgHXG8Savp5y1r9Rw1duNREuqaD
+  QsHNZ/hM1VEr9PhyVQ3HWe18EWRY8vMc22MlBAMt9QT+Okj3Ao679uPGnZD3HQ8p
+  ZiJRxV6UJoFlWdmEXyljUKUryotX7bN1bfSvBaiV/RncUARMfxulIbDxHgp6/D8G
+  dcdLTVD6WkbRS77Nt4rB1Gu+b/qME8zxwhjvM3J7r2p+EjVqwW7dgQQRP1I0jyGU
+  9rZdDhon2y067Zr8Kuc=
+  -----END CERTIFICATE-----
+
+gearman_server_pem: |+
+  -----BEGIN CERTIFICATE-----
+  MIIDQTCCAikCCQDWIKrPJpjpMTANBgkqhkiG9w0BAQsFADBiMQswCQYDVQQGEwJV
+  UzEOMAwGA1UECAwFVGV4YXMxDzANBgNVBAcMBkF1c3RpbjEdMBsGA1UECgwUT3Bl
+  blN0YWNrIEZvdW5kYXRpb24xEzARBgNVBAMMCmdlYXJtYW4tY2EwHhcNMTgwMzI4
+  MDIzMzQ5WhcNMjgwMzI1MDIzMzQ5WjBjMQswCQYDVQQGEwJVUzEOMAwGA1UECAwF
+  VGV4YXMxDzANBgNVBAcMBkF1c3RpbjEdMBsGA1UECgwUT3BlblN0YWNrIEZvdW5k
+  YXRpb24xFDASBgNVBAMMC2dlYXItc2VydmVyMIIBIjANBgkqhkiG9w0BAQEFAAOC
+  AQ8AMIIBCgKCAQEA5CTko8DQeIxRCUizbSY4JgJfYAz7HBkZK6VIPCVmJGmuFyDS
+  I3YlzhKIQdLA9SEDNpP9F9T5EJKDGcJEptvtqViQXWFv/gBth4agA89CPZu0kBz7
+  X1OVxxr0LQociwbXWHpj4vDZJ0XRM0xgleZMeUFIT2A6wGDlg7eH7v4XASr/wwA0
+  4XCx042UDI79SPkxvR9hkexWbKZG3OEcv5jKEbb3mvpGqND8YTHvwOc/VlCO/mOw
+  /LEep2xlFO9T5WQZ1/qPLHAizOAYIqBMIUm8TP7beEVaAmZVy3Zm9V5lOw9KFE3R
+  c79CMYgTssWI32MzQJ81MRJEofMVAP50bFblhQIDAQABMA0GCSqGSIb3DQEBCwUA
+  A4IBAQDBhaVBFtU3ZKrJ7vMObLGcr+lUyYDi05/ccsHe3bXCdnCwdefULSgqJ4AX
+  kdJ5KFsUrsA+lxLVDbc1HLrRPy8lCjRiZFZHORTGBgReB2GfeQVLWeT0VyOTl1/t
+  7JKPEGhJJhEOhn9EzcMxTUdNMTTg9DrzV8yVooWgKiZCMvDlMBZNnxStEphBP6GH
+  hE5mT6CITkCsDzzNDLYLCfEV4hCmzOBIt/KNp/1TQM1H5JK6R+VjGXMkRLtFqx29
+  UDBz7a0g9iLvnpFq0jb7TpNgzzl256N3nIOaOPGT5OB7yYeIOEaLdBxTIIrmhuRd
+  HIedlOp7IZPO/bMz334m0eL0odIl
+  -----END CERTIFICATE-----
+
+gearman_server_key: |+
+  -----BEGIN PRIVATE KEY-----
+  MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDkJOSjwNB4jFEJ
+  SLNtJjgmAl9gDPscGRkrpUg8JWYkaa4XINIjdiXOEohB0sD1IQM2k/0X1PkQkoMZ
+  wkSm2+2pWJBdYW/+AG2HhqADz0I9m7SQHPtfU5XHGvQtChyLBtdYemPi8NknRdEz
+  TGCV5kx5QUhPYDrAYOWDt4fu/hcBKv/DADThcLHTjZQMjv1I+TG9H2GR7FZspkbc
+  4Ry/mMoRtvea+kao0PxhMe/A5z9WUI7+Y7D8sR6nbGUU71PlZBnX+o8scCLM4Bgi
+  oEwhSbxM/tt4RVoCZlXLdmb1XmU7D0oUTdFzv0IxiBOyxYjfYzNAnzUxEkSh8xUA
+  /nRsVuWFAgMBAAECggEAW8GSy2Fi9vjIJsm8kCuM7YyKu2C9JcHaY7ln4fjQqdhv
+  EhI7MdP0xHqjnoWa4XvThQHkCs+3FDk4zQVbAxj07uUVutjTZ/7YDmfQt3eGFq0m
+  48ckOmStmpR2nB6y+B9aQNWIkt93Ftp3lwAi4GbtXt8oq/Px7SmLZXxNCYvbyLW2
+  DiIkmbSNabTivDQhoC2mkhIO37+j9fNp0Z2sk0YbiesaLiJNRL5DepOS2PnZa9Vn
+  e2n+/51pFQp4qcCN8u9meggZ34nCDw08DWqBaN/2HNLrQFMRtKRXsSkrVVV1EE0s
+  il+pQzh3Hcia4p4H2tmtOctDEfF06vWLAByvrjtiQQKBgQD37guAytdpF5Y3o/hQ
+  Gpdzr+jYQG0GAhKVYZBnvMc6VwSr7YrpbJMDW5yCuu240UDeDdok675eWTfC4jXY
+  dz4/ruQ1sZ5mr9/QYDRHYZcpDsEumPhypb9YeDc65K/ZeAh5t3PecgRmK0WtsXxp
+  tlKbuByCCDxDwA563WhIKRKcqQKBgQDrkfoiovOUUFSOnHbDXIDfhfieyOCdsTst
+  MEM5cLy18AzfaSvjWoykJYIGqyMrIQPtJg7MLAXC527fRIZ5tNdXumsZ3e2r8abW
+  bblmK6DKtn13OmtSoPMXxGhUHULtr07fNSoZhIUgiJBc/9vVPYYSmEJlLS6Xf6M8
+  5zKkW46PfQKBgCBzden7ospMngrWWXASqvQneDCl7h81Mj1/MamCWglWznO6ec4n
+  ue5clVW/JdJlATqPUZg3iwlKYDQP68BTi0BGofQtNXB3YLIjhXQ6X9Ct77crqolH
+  DI6F3aTFvgaW4XUc//uDrPO6gjpD2ubzSEi9hm22qjyr7LlENZwMVDVRAoGARDR0
+  xtiFS9jiUpQssq2yxoUEkfy5RA8PgirqG9RvXwIMyBasVVxfQht2BTZBrXgWqfAN
+  8sGAPYlCibROdyiL/OOFpOyjptgFpSoJtvJE0Mx7kSzB7B+borMEPe5m9Wh/npLH
+  CLJc1SmVGsgdvyTcD8Az4RVu2wBio/yQphO4OAUCgYEAv4SPmu6xQAbwHMyUf8lv
+  32b23e18jfh906cCcD3EH+lS8Ddbhl3LD2n3qJi55B5ibzTBcrrVpbPhePxtoGZr
+  7NSS/HJJGlt/SqWSbASpt9gfw1k6a0wffIq6h0+I6bNeajfwMz8bGAMIdHqGRhze
+  TPw69kX4BM39nK3lP2/aiTQ=
+  -----END PRIVATE KEY-----
+
+gearman_client_pem: |+
+  -----BEGIN CERTIFICATE-----
+  MIIDQTCCAikCCQDWIKrPJpjpMjANBgkqhkiG9w0BAQsFADBiMQswCQYDVQQGEwJV
+  UzEOMAwGA1UECAwFVGV4YXMxDzANBgNVBAcMBkF1c3RpbjEdMBsGA1UECgwUT3Bl
+  blN0YWNrIEZvdW5kYXRpb24xEzARBgNVBAMMCmdlYXJtYW4tY2EwHhcNMTgwMzI4
+  MDIzNTAzWhcNMjgwMzI1MDIzNTAzWjBjMQswCQYDVQQGEwJVUzEOMAwGA1UECAwF
+  VGV4YXMxDzANBgNVBAcMBkF1c3RpbjEdMBsGA1UECgwUT3BlblN0YWNrIEZvdW5k
+  YXRpb24xFDASBgNVBAMMC3p1dWwtY2xpZW50MIIBIjANBgkqhkiG9w0BAQEFAAOC
+  AQ8AMIIBCgKCAQEA0lHkUiVv+xKNgpXeWh/mEjxVBLvY9X0Jv+cIRnT2jgTIXzDT
+  An6g0pgfVOtXJ+Zg4wpcQgreJXI1dqHzYfGp5SfOCJz8UAzarp8ISR0Dmv5iD9yo
+  0++XJcfYSMI8if95jORCg07VrwcaA3G+EqVCrEV43rzbt+lwNuqaXUsAZsawV1GX
+  pNKBGUkMGaKbgOn+tBMTsplsYEgZDL9CjdWyZrmjdXe+/G86KbmBvxTVHOpsjVLZ
+  v6JHuPd8i21d4cBdpvZq1OjHMP+wyVOCited0U0ACq2tDy/JG7IZxTe93nIXnzbB
+  bTQ8bJmDt5xS9wR4sobih+HFuSwL05rfrRVNQwIDAQABMA0GCSqGSIb3DQEBCwUA
+  A4IBAQBfB1Cf1rbeym5VGubIlYr3u+mrn1stHDhBANxzazNkmmHXER4z4fJPgkq0
+  8Nkq0YUptfQeJ1yoEpVHqLOGCyvgff8MWxuBEQXJXahvlbS2fV73gqWXFq/RFGoc
+  PDSH2WLPqcYHDx7+083q6YrjuJTGNNcJYCYf3R3+V90JGrfoKhi3OL31gkGzuZUl
+  QPkgA7AlYi8tLPThCPF/0RFTlp+6mRCeT30GkrjZ9521tV3H0vfFIhKO0vGuNhLh
+  zLSZhFOb11cvw3HHpeWuSiqbNjLHbNXi3vqQIuOb+eYncapTkFQafaBj3Ho4dhxP
+  EcoJZhxBAsiPa3u08rhLyXnCNKrf
+  -----END CERTIFICATE-----
+
+gearman_client_key: |+
+  -----BEGIN PRIVATE KEY-----
+  MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDSUeRSJW/7Eo2C
+  ld5aH+YSPFUEu9j1fQm/5whGdPaOBMhfMNMCfqDSmB9U61cn5mDjClxCCt4lcjV2
+  ofNh8anlJ84InPxQDNqunwhJHQOa/mIP3KjT75clx9hIwjyJ/3mM5EKDTtWvBxoD
+  cb4SpUKsRXjevNu36XA26ppdSwBmxrBXUZek0oEZSQwZopuA6f60ExOymWxgSBkM
+  v0KN1bJmuaN1d778bzopuYG/FNUc6myNUtm/oke493yLbV3hwF2m9mrU6Mcw/7DJ
+  U4KK153RTQAKra0PL8kbshnFN73echefNsFtNDxsmYO3nFL3BHiyhuKH4cW5LAvT
+  mt+tFU1DAgMBAAECggEAJ+24JQhKfCYHi5UcQ4vux+OAWIe5JtH4OeCIp6eo70ll
+  KP1B8iVMLu8Gc77CKycHmdLrtPYPOpi2IbGZXSzeDk1CRkxXcnMeSSyUDB1gA9rr
+  jwtbWfEQhvGr1BRcHe7Mir0DC5653qLAg4rihPOu9rmxusesBvxge2yKpc+JYfla
+  Kue6tii1D9w8QVG69pBltVd5QmY+r8rTl3CxaagIkzi5OX8KfTb6X1ALfs/XWsTx
+  v2OypDJpK5oliCszLpQd437wXIQ9JDWRlglBOK0PXdYQ8SRj00veZYgoQBUlmmeX
+  HxE4voAl34oq5AUhJQxaUFmQb+OFPAvVbz2vDIJdYQKBgQD9X/YRfOdCRVI9ro6O
+  Qs+fsISJqO4nDK2IHKUAfIc/HIQ6cqxquUf53vLm/+N5rPy03E3lvNzvNJH82VPX
+  nNZZNKPLPcA+irMP1WfmvQLSFLAuRDL8iXsiSYp5WZwji5wahGjy49Etw+K+Swdp
+  +VmSvu4P71ynaxYV0P09vw13uwKBgQDUf7vdxMHSjFWysRONVuOX+N/XUmSXoLCD
+  JZfKw4rldTnN3gp/A0xLpM4zZjJsdg3N/QlbDhDUYZjKa1ifSyRxLOJTTs15SoSj
+  rUm8cCp4onPGo8L4yi/nr+fjaL1aYl3L6nHMEsWGFeL1XHM5hQX6eK5+NNpxO6tZ
+  fbdjFp4UGQKBgBTlfijREU2Q5Ah8RfuLnQ4Bg9zKluGXlRQ9sIoKuyjEVE9xt7CR
+  mVMNRSEyB3O4hZrw9Ge3HM2Jm2SsE9Mbdz4iLkQL0rgVvlDW+9u2yO3EkQcvzriv
+  Kf2Y7Re3AT6ZPAWf1/v4N/87QY8KJxFhZDbLEl00E4MnPMoN02TtRdITAoGAaJxF
+  WQSOwl8RpTllPbRjsKH1WCQYn0ic/MMZ+djP3Owbu8wucJ6oBakpVcZe1mQ7oYeK
+  /odrI5K0TBoSc8DjPM/yzz5BCw/zQjyBy0GQtviKdGSUDDRE5xMC3kHmzcMVF9jf
+  kq4/DSZjJ5UOqGdjLQ4SINFWJF5SmWi5Sg+NXKkCgYEAzD22Q8ttCKORyg7/Zi+9
+  84bn2tirCKSWPYkx2Zs/XB8qgZCZJcA0XxvnHUepP0F7T9nrvgRLe2wjOKDi0OJh
+  QqE7FEp7UZbDEVLb1xBaijmjkuq300f4olW+UNKzC23kSiX/VL3ngpxt0saNTWN+
+  GGE1XO4oxVDrkeDSIUmxN60=
+  -----END PRIVATE KEY-----
+
+zuul_github_pem: |+
+  -----BEGIN RSA PRIVATE KEY-----
+  SOME KEY
+  -----END RSA PRIVATE KEY-----
+
+zuul_worker_ssh_pem: |+
+  -----BEGIN RSA PRIVATE KEY-----
+  SOME KEY
+  -----END RSA PRIVATE KEY-----
+
+github_secret: secretvalue1
+webhook_github_token: 'token_generated_with_zuul_github_app'
+webhook_github_app_id: 2
+#### End Keys
+
+#### Cloud conf
+os_client_config_clouds: |+
+  cache:
+    expiration_time: 3600
+  clouds:
+    otc:
+      auth:
+        auth_url: https://iam.eu-de.otc.t-systems.com:443/v3
+        project_name: eu-de
+        user_domain_name: my_domain
+      identity_api_version: 3
+
+os_client_config_secure: |+
+  clouds:
+    otc:
+      auth:
+        username: my_user
+        password: ma_pass
+#### End Cloud Conf
+
+default_resources: {}
+
+# limit resources used by the image builders
+builds_resources:
+  limits:
+    memory: "256Mi"
+    cpu: "500m"
+
+## Components configurations
+
+#### Zookeeper
+zookeeper_image_name: "s2i-app-zookeeper:latest"
+zookeeper_replicas: 1
+zookeeper_local_storage: '1Gi'
+zookeeper_resources: "{{ default_resources }}"
+
+#### End Zookeeper
+
+#### Zuul-Scheduler
+zuul_scheduler_image_name: "s2i-app-zuul-scheduler:latest"
+zuul_scheduler_resources: "{{ default_resources }}"
+#### End Zuul-Scheduler
+
+#### Zuul-Executor
+zuul_executor_image_name: "s2i-app-zuul-executor:latest"
+zuul_executor_replicas: 1
+zuul_executor_local_storage: 1Gi
+zuul_executor_resources: "{{ default_resources }}"
+#### End Zuul-Executor
+
+#### Zuul-Merger
+zuul_merger_image_name: "s2i-app-zuul-merger:latest"
+zuul_merger_replicas: 1
+zuul_merger_local_storage: 1Gi
+zuul_merger_resources: "{{ default_resources }}"
+#### End Zuul-Executor
+
+#### Zuul-Web
+zuul_web_image_name: "s2i-app-zuul-web:latest"
+zuul_web_replicas: 1
+zuul_web_resources: "{{ default_resources }}"
+#### End Zuul-Executor
+
+#### Nodepool-Launcher
+nodepool_launcher_image_name: "s2i-app-nodepool-launcher:latest"
+nodepool_launcher_replicas: 1
+nodepool_launcher_resources: "{{ default_resources }}"
+#### End Nodepool-Launcher
+
+#### Nodepool-builder
+nodepool_builder_image_name: "s2i-app-nodepool-builder:latest"
+nodepool_builder_replicas: 1
+nodepool_builder_local_storage: "20Gi"
+nodepool_builder_resources: "{{ default_resources }}"
+#### End Nodepool-builder
+
+
+#### Zuul configuration defaults
+
+# zuul revision to be checked out in s2i
+zuul_base_revision: 3.1.0
+
+zuul_zuul_conf: |+
+  [gearman]
+  server=gearman
+  ssl_ca=/etc/ssl/gearman-client/root-ca.pem
+  ssl_cert=/etc/ssl/gearman-client/client.pem
+  ssl_key=/etc/ssl/gearman-client/client.key
+
+  [gearman_server]
+  start=true
+  ssl_ca=/etc/ssl/gearman-server/root-ca.pem
+  ssl_cert=/etc/ssl/gearman-server/server.pem
+  ssl_key=/etc/ssl/gearman-server/server.key
+  log_config=/etc/zuul/logging.conf
+
+  [zookeeper]
+  hosts=zookeeper-svc
+
+  [zuul]
+  pidfile=/var/run/zuul/zuul.pid
+
+  [executor]
+  log_config=/etc/zuul/logging.conf
+  private_key_file=/etc/zuul/ssl/ssh.pem
+  finger_port=7900
+  trusted_rw_paths=/var/log/zuul/zuul-logs
+  variables=/etc/zuul/variables/variables.yaml
+
+  # [merger]
+  # log_config=/etc/zuul/logging.conf
+
+  [scheduler]
+  log_config=/etc/zuul/logging.conf
+  tenant_config=/etc/zuul/main.yaml
+
+  [web]
+  status_url=https://${PUBLIC_HOST_NAME}/zuul/t/{tenant.name}/status.html
+  log_config=/etc/zuul/logging.conf
+  listen_address=0.0.0.0
+  gearman_server=gearman
+  static_path=/opt/app-root/static_html
+
+  [connection github]
+  driver=github
+  app_id={{ webhook_github_app_id }}
+  app_key=/etc/zuul/ssl/github.pem
+  webhook_token={{ webhook_github_token }}
+
+zuul_main_yaml: |+
+  ---
+  - tenant:
+      name: startup
+
+zuul_logging_conf: |+
+  [loggers]
+  keys=root,zuul,gear,kazoo
+
+  [handlers]
+  keys=console,debug,normal
+
+  [formatters]
+  keys=simple
+
+  [logger_root]
+  level=INFO
+  handlers=console
+
+  [logger_zuul]
+  level=DEBUG
+  handlers=debug,normal
+  qualname=zuul
+
+  [logger_gear]
+  level=DEBUG
+  handlers=debug,normal
+  qualname=gear
+
+  [logger_kazoo]
+  level=WARNING
+  handlers=debug,normal
+  qualname=kazoo
+
+  [handler_console]
+  level=INFO
+  class=StreamHandler
+  formatter=simple
+  args=(sys.stdout,)
+
+  [handler_debug]
+  level=DEBUG
+  class=logging.handlers.TimedRotatingFileHandler
+  formatter=simple
+  args=('/var/log/zuul/debug.log', 'midnight', 1, 30,)
+
+  [handler_normal]
+  level=INFO
+  class=logging.handlers.TimedRotatingFileHandler
+  formatter=simple
+  args=('/var/log/zuul/zuul.log', 'midnight', 1, 30,)
+
+  [formatter_simple]
+  format=%(asctime)s %(levelname)s %(name)s: %(message)s
+  datefmt=
+
+zuul_variables_yaml: |+
+  ---
+  # Optional site variables
+
+#### Nodepool configuration defaults
+
+# nodepool revision to be checked out in s2i
+nodepool_base_revision: 3.0.1
+
+nodepool_nodepool_yaml: |+
+  elements-dir: /opt/app-root/dib/elements
+  images-dir: /opt/nodepool/images
+  build-log-dir: /opt/nodepool/logs/builds
+
+  cron:
+    cleanup: '* * * * *'
+    check: '*/15 * * * *'
+
+  zookeeper-servers:
+    - host: zookeeper-svc
+
+nodepool_logging_conf: |+
+  [loggers]
+  keys=root,nodepool,requests,shade,openstack
+
+  [handlers]
+  keys=console,debug,normal
+
+  [formatters]
+  keys=simple
+
+  [logger_root]
+  level=INFO
+  handlers=console
+
+  [logger_nodepool]
+  level=DEBUG
+  handlers=debug,normal
+  qualname=nodepool
+
+  [logger_requests]
+  level=DEBUG
+  handlers=debug,normal
+  qualname=requests
+
+  [logger_shade]
+  level=DEBUG
+  handlers=debug,normal
+  qualname=shade
+
+  [logger_openstack]
+  level=DEBUG
+  handlers=debug,normal
+  qualname=openstack
+
+  [handler_console]
+  level=INFO
+  class=StreamHandler
+  formatter=simple
+  args=(sys.stdout,)
+
+  [handler_debug]
+  level=DEBUG
+  class=logging.handlers.TimedRotatingFileHandler
+  formatter=simple
+  args=('/var/log/nodepool/debug.log', 'midnight', 1, 30,)
+
+  [handler_normal]
+  level=INFO
+  class=logging.handlers.TimedRotatingFileHandler
+  formatter=simple
+  args=('/var/log/nodepool/nodepool.log', 'midnight', 1, 30,)
+
+  [formatter_simple]
+  format=%(asctime)s %(levelname)s %(name)s: %(message)s
+  datefmt=
+
+nodepool_secure_conf: |+
+  #

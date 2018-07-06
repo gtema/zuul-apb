@@ -1,0 +1,99 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/display-name: "{{ s2i_builder_nodepool_builder_stream_name }}"
+    name: "{{ s2i_builder_nodepool_builder_stream_name }}"
+    namespace: "{{ namespace }}"
+  spec:
+    lookupPolicy:
+      local: true
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/display-name: "s2i-app-nodepool-builder"
+    name: "s2i-app-nodepool-builder"
+    namespace: "{{ namespace }}"
+  spec:
+    lookupPolicy:
+      local: true
+
+{% if manage_s2i_builder_images %}
+- apiVersion: "v1"
+  kind: BuildConfig
+  metadata:
+    name: "s2i-builder-nodepool-builder-builder"
+    namespace: "{{ namespace }}"
+  spec:
+    runPolicy: "SerialLatestOnly"
+    successfulBuildsHistoryLimit: 2
+    triggers:
+      - type: "ConfigChange"
+      - type: "GitHub"
+        github:
+          secret: "{{ github_secret }}"
+      - type: "Generic"
+        generic:
+          secret: "{{ github_secret }}"
+    source:
+      git:
+        uri: "{{ s2i_builder_nodepool_builder_repo }}"
+      contextDir: "{{ s2i_builder_nodepool_builder_context_dir }}"
+    strategy:
+      dockerStrategy:
+        from:
+          kind: "DockerImage"
+          name: "{{ s2i_build_builder_image }}"
+    output:
+      to:
+        kind: "ImageStreamTag"
+        name: "{{ s2i_builder_nodepool_builder_stream_name + ':latest' }}"
+    resources: {{ builds_resources | to_json }}
+{% endif %}
+
+- apiVersion: "v1"
+  kind: BuildConfig
+  metadata:
+    name: "s2i-app-nodepool-builder-builder"
+    namespace: "{{ namespace }}"
+  spec:
+    runPolicy: "SerialLatestOnly"
+    successfulBuildsHistoryLimit: 2
+    triggers:
+      - type: "ConfigChange"
+      - type: "GitHub"
+        github:
+          secret: "{{ github_secret }}"
+      - type: "Generic"
+        generic:
+          secret: "{{ github_secret }}"
+      - type: "ImageChange"
+    source:
+      git:
+        uri: "{{ s2i_app_nodepool_builder_repo }}"
+      contextDir: "{{ s2i_app_nodepool_builder_context_dir }}"
+    strategy:
+      sourceStrategy:
+        from:
+          kind: "ImageStreamTag"
+          name: "{{ s2i_builder_nodepool_builder_stream_name + ':latest' }}"
+        incremental: true
+    output:
+      to:
+        kind: "ImageStreamTag"
+        name: "{{ nodepool_builder_image_name }}"
+    resources: {{ builds_resources | to_json }}

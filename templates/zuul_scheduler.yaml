@@ -1,0 +1,116 @@
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+---
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: "gearman"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "gearman"
+      service: "zuul"
+  spec:
+    type: "ClusterIP"
+    ports:
+      - name: "gearman"
+        port: 4730
+        targetPort: 4730
+        protocol: "TCP"
+    selector:
+      app: "zuul-scheduler"
+      service: "zuul"
+    sessionAffinity: None
+
+- apiVersion: {{ deployment_api_version }}
+  kind: {{ deployment_kind }}
+  metadata:
+    name: "zuul-scheduler"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "zuul-scheduler"
+      service: "zuul"
+  spec:
+    strategy:
+      type: "Recreate"
+    revisionHistoryLimit: 2
+    triggers:
+      - type: "ConfigChange"
+      - type: "ImageChange"
+        imageChangeParams:
+          automatic: true
+          from:
+            kind: "ImageStreamTag"
+            name: "{{ zuul_scheduler_image_name }}"
+          containerNames:
+            - "zuul-scheduler"
+    replicas: 1
+    selector:
+      app: "zuul-scheduler"
+      service: "zuul"
+    test: false
+    template:
+      metadata:
+        labels:
+          app: "zuul-scheduler"
+          service: "zuul"
+      spec:
+        containers:
+          - name: "zuul-scheduler"
+            image: "{{ zuul_scheduler_image_name }}"
+            ports:
+              - containerPort: 4730
+                protocol: "TCP"
+            volumeMounts:
+              - name: "zuul-conf"
+                mountPath: /etc/zuul/
+                readOnly: true
+              # certificates for gearman
+              - name: "gearman-client-certificate"
+                mountPath: /etc/ssl/gearman-client
+                readOnly: true
+              - name: "gearman-server-certificate"
+                mountPath: /etc/ssl/gearman-server
+                readOnly: true
+            resources: {{ zuul_scheduler_resources | to_json }}
+        volumes:
+          - name: "zuul-conf"
+            projected:
+              sources:
+                - configMap:
+                    name: "zuul-config"
+                    items:
+                      - key: zuul.conf
+                        path: zuul.conf
+                      - key: main.yaml
+                        path: main.yaml
+                      - key: logging.conf
+                        path: logging.conf
+                      - key: variables.yaml
+                        path: variables/variables.yaml
+                - secret:
+                    name: "zuul-secrets"
+                    items:
+                      - key: github.pem
+                        path: ssl/github.pem
+                - secret:
+                    name: "zuul-secrets"
+                    items:
+                      - key: worker-ssh.pem
+                        path: ssl/ssh.pem
+          # Certificates
+          - name: "gearman-client-certificate"
+            secret:
+              secretName: "zuul-gearman-client-certificate"
+          - name: "gearman-server-certificate"
+            secret:
+              secretName: "zuul-gearman-server-certificate"
