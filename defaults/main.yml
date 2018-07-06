@@ -255,12 +255,10 @@ os_client_config_secure: |+
 
 default_resources: {}
 
-# limit resources used by the image builders
+# NOTE: S2I is not surviving resources limitation properly,
+# Lot's of builds are simply killed with no info
 builds_resources:
-  limits:
-    memory: "256Mi"
-    cpu: "500m"
-
+  
 ## Components configurations
 
 #### Zookeeper

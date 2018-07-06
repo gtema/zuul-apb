@@ -10,10 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 ---
+# NOTE: S2I is not surviving resources limitation properly,
+# Lot's of builds are simply killed with no info
 builds_resources:
-  limits:
-    memory: "256Mi"
-    cpu: "500m"
 
 zookeeper_resources:
  requests:
